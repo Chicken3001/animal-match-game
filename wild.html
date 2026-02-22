@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wild Animals – Animal Match!</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+
+  body {
+    font-family: 'Baloo 2', cursive;
+    background: #fff9f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-image:
+      radial-gradient(circle at 15% 15%, #FFE0B228 0%, transparent 50%),
+      radial-gradient(circle at 85% 80%, #B2EBF228 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, #F8BBD020 0%, transparent 60%);
+  }
+
+  header {
+    padding: 12px 16px 6px;
+    text-align: center;
+    width: 100%;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .back-btn {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border: 2.5px solid #eee;
+    border-radius: 50px;
+    padding: 5px 14px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #888;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.15s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .back-btn:hover  { transform: translateY(-50%) scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+  .back-btn:active { transform: translateY(-50%) scale(0.96); }
+
+  h1 {
+    font-size: clamp(1.4rem, 4.5vw, 2.4rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #FF6B6B, #FFB347, #4ECDC4, #A78BFA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-size: clamp(0.75rem, 2vw, 1rem);
+    color: #999;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .score-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 5px 0 3px;
+  }
+
+  .score-badge {
+    background: white;
+    border-radius: 50px;
+    padding: 3px 12px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    color: #555;
+    border: 2.5px solid #eee;
+  }
+  .score-badge span { color: #FF6B6B; }
+
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    padding-bottom: 3px;
+  }
+  .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: background 0.3s, transform 0.3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .dot.filled { transform: scale(1.25); }
+
+  #game-area {
+    flex: 1;
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: relative;
+    min-height: 0;
+  }
+
+  .column { display: flex; flex-direction: column; gap: var(--card-gap, 14px); z-index: 2; }
+
+  .animal-card {
+    width: var(--card-size, 90px);
+    height: var(--card-size, 90px);
+    border-radius: 22px;
+    background: white;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    border: 3px solid #eee;
+    transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s, border-color 0.18s;
+    user-select: none; -webkit-user-select: none;
+    gap: 1px; flex-shrink: 0;
+  }
+  .animal-card .emoji { font-size: calc(var(--card-size, 90px) * 0.42); line-height: 1; }
+  .animal-card .label { font-size: calc(var(--card-size, 90px) * 0.155); font-weight: 800; letter-spacing: 0.2px; line-height: 1; }
+
+  .animal-card:active   { transform: scale(0.93); }
+  .animal-card.selected { transform: scale(1.07); box-shadow: 0 8px 24px rgba(0,0,0,0.16); }
+  .animal-card.matched  { opacity: 0.5; transform: scale(0.94); cursor: default; pointer-events: none; }
+  .animal-card.wrong-shake { animation: shake 0.4s ease; }
+  .animal-card.correct-pop { animation: pop 0.4s cubic-bezier(.34,1.56,.64,1); }
+
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)} 40%{transform:translateX(8px)}
+    60%{transform:translateX(-5px)} 80%{transform:translateX(5px)}
+  }
+  @keyframes pop {
+    0%{transform:scale(1)} 50%{transform:scale(1.18)} 100%{transform:scale(0.94)}
+  }
+
+  #line-canvas {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none; z-index: 10; overflow: visible;
+  }
+  .match-line {
+    stroke-width: 6; stroke-linecap: round; fill: none;
+    opacity: 0; animation: lineIn 0.35s ease forwards;
+    stroke-dasharray: 1200; stroke-dashoffset: 1200;
+  }
+  @keyframes lineIn { to { opacity: 0.85; stroke-dashoffset: 0; } }
+  .temp-line { stroke-width: 6; stroke-linecap: round; fill: none; stroke-dasharray: 12 8; opacity: 0.5; }
+
+  .deco {
+    position: fixed; font-size: 1.5rem; opacity: 0.10;
+    pointer-events: none; z-index: 0;
+    animation: floatDeco 6s ease-in-out infinite;
+  }
+  @keyframes floatDeco {
+    0%,100%{transform:translateY(0) rotate(0deg)}
+    50%{transform:translateY(-12px) rotate(7deg)}
+  }
+
+  #win-screen {
+    display: none; position: fixed; inset: 0;
+    background: rgba(255,249,240,0.93); backdrop-filter: blur(12px);
+    z-index: 100; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; animation: fadeIn 0.5s ease;
+  }
+  #win-screen.show { display: flex; }
+  @keyframes fadeIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+
+  .win-emoji { font-size: 4.5rem; animation: bounce 0.8s infinite alternate cubic-bezier(.34,1.56,.64,1); }
+  @keyframes bounce {
+    from{transform:translateY(0) rotate(-5deg)}
+    to{transform:translateY(-18px) rotate(5deg)}
+  }
+  .win-title {
+    font-size: clamp(2rem, 7vw, 3.5rem); font-weight: 800;
+    background: linear-gradient(135deg, #FF6B6B, #FFB347, #4ECDC4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; text-align: center;
+  }
+  .win-sub { font-size: 1.1rem; color: #777; font-weight: 600; text-align: center; padding: 0 24px; }
+
+  .win-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+
+  .win-btn {
+    border: none; border-radius: 50px;
+    padding: 13px 28px; font-size: 1.15rem; font-weight: 800;
+    font-family: 'Baloo 2', cursive; cursor: pointer;
+    transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
+  }
+  .win-btn:active { transform: scale(0.93); }
+  .win-btn:hover  { transform: scale(1.05); }
+  .btn-again  { background: linear-gradient(135deg, #FF6B6B, #FFB347); color: white; box-shadow: 0 5px 18px rgba(255,107,107,0.35); }
+  .btn-menu   { background: white; color: #888; border: 2.5px solid #eee; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+  .confetti-piece {
+    position: fixed; animation: confetti-fall linear forwards;
+    z-index: 200; pointer-events: none;
+  }
+  @keyframes confetti-fall {
+    0%{transform:translateY(-20px) rotate(0deg);opacity:1}
+    100%{transform:translateY(110vh) rotate(720deg);opacity:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="deco" style="top:5%;left:3%;animation-delay:0s">⭐</div>
+<div class="deco" style="top:12%;right:4%;animation-delay:1s">🌟</div>
+<div class="deco" style="bottom:10%;left:5%;animation-delay:2s">✨</div>
+<div class="deco" style="bottom:5%;right:3%;animation-delay:0.5s">⭐</div>
+
+<svg id="line-canvas"></svg>
+
+<header id="main-header">
+  <a class="back-btn" href="index.html">← Menu</a>
+  <h1>Wild Animals! 🦁</h1>
+  <p class="subtitle">Tap two animals to match them!</p>
+  <div class="score-bar">
+    <div class="score-badge">Matched: <span id="score">0</span>/6</div>
+    <div class="score-badge">Tries: <span id="tries">0</span></div>
+  </div>
+  <div class="progress-dots" id="progress-dots"></div>
+</header>
+
+<div id="game-area">
+  <div class="column" id="left-col"></div>
+  <div class="column" id="right-col"></div>
+</div>
+
+<div id="win-screen">
+  <div class="win-emoji">🎉</div>
+  <div class="win-title">You Did It!</div>
+  <div class="win-sub" id="win-sub">Amazing matching! 🌟</div>
+  <div class="win-buttons">
+    <button class="win-btn btn-again" onclick="initGame()">Play Again! 🦁</button>
+    <a class="win-btn btn-menu" href="index.html">← Menu</a>
+  </div>
+</div>
+
+<script>
+const ANIMALS = [
+  { emoji: '🐶', name: 'Dog',       color: '#A0522D' },
+  { emoji: '🐱', name: 'Cat',       color: '#E07A30' },
+  { emoji: '🐸', name: 'Frog',      color: '#16A34A' },
+  { emoji: '🦁', name: 'Lion',      color: '#CA8A04' },
+  { emoji: '🐘', name: 'Elephant',  color: '#6B7FA3' },
+  { emoji: '🦋', name: 'Butterfly', color: '#7C3AED' },
+];
+
+const PAIR_COLORS = ['#FF6B6B','#FFB347','#4ECDC4','#A78BFA','#34D399','#F472B6'];
+let selected = null, matchedCount = 0, tries = 0, tempLine = null;
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function computeLayout() {
+  const headerH   = document.getElementById('main-header').getBoundingClientRect().height;
+  const available = window.innerHeight - headerH - 20;
+  const n = ANIMALS.length;
+  const gap = Math.max(8, Math.floor(available * 0.025));
+  const cardSize = Math.min(Math.max(Math.floor((available - gap * (n-1)) / n), 58), 120);
+  document.documentElement.style.setProperty('--card-size', cardSize + 'px');
+  document.documentElement.style.setProperty('--card-gap',  gap + 'px');
+}
+
+function initGame() {
+  selected = null; matchedCount = 0; tries = 0; updateScore();
+  document.getElementById('win-screen').classList.remove('show');
+  removeConfetti(); computeLayout();
+  const lc = document.getElementById('left-col');
+  const rc = document.getElementById('right-col');
+  const svg = document.getElementById('line-canvas');
+  lc.innerHTML = rc.innerHTML = svg.innerHTML = '';
+  shuffle(ANIMALS).forEach((a,i) => lc.appendChild(makeCard(a,'left',i)));
+  shuffle(ANIMALS).forEach((a,i) => rc.appendChild(makeCard(a,'right',i)));
+  const dots = document.getElementById('progress-dots');
+  dots.innerHTML = '';
+  ANIMALS.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'dot'; d.id = `dot-${i}`; dots.appendChild(d);
+  });
+  tempLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+  tempLine.classList.add('temp-line');
+  tempLine.setAttribute('stroke','#bbb');
+  tempLine.style.display = 'none';
+  svg.appendChild(tempLine);
+  document.onpointermove = (e) => {
+    if (!selected || tempLine.style.display === 'none') return;
+    tempLine.setAttribute('x2', e.clientX);
+    tempLine.setAttribute('y2', e.clientY);
+  };
+}
+
+function makeCard(animal, side) {
+  const card = document.createElement('div');
+  card.className = 'animal-card';
+  card.dataset.name = animal.name; card.dataset.side = side;
+  card.innerHTML = `<span class="emoji">${animal.emoji}</span><span class="label" style="color:${animal.color}">${animal.name}</span>`;
+  card.addEventListener('pointerdown', onCardTap);
+  return card;
+}
+
+function getCenter(card) {
+  const r = card.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2 };
+}
+
+function onCardTap(e) {
+  e.preventDefault();
+  const card = e.currentTarget;
+  if (card.classList.contains('matched')) return;
+  if (!selected) {
+    selected = card; card.classList.add('selected'); card.style.borderColor = '#FFB347';
+    const c = getCenter(card);
+    tempLine.setAttribute('x1',c.x); tempLine.setAttribute('y1',c.y);
+    tempLine.setAttribute('x2',c.x); tempLine.setAttribute('y2',c.y);
+    tempLine.style.display = '';
+  } else {
+    const first = selected, second = card;
+    selected = null; tries++; updateScore();
+    tempLine.style.display = 'none';
+    first.classList.remove('selected'); first.style.borderColor = '';
+    if (first === second) return;
+    const ok = first.dataset.side !== second.dataset.side && first.dataset.name === second.dataset.name;
+    if (ok) {
+      const color = PAIR_COLORS[matchedCount % PAIR_COLORS.length];
+      first.style.borderColor = second.style.borderColor = color;
+      first.classList.add('matched','correct-pop'); second.classList.add('matched','correct-pop');
+      drawLine(first, second, color);
+      const dot = document.getElementById(`dot-${matchedCount}`);
+      if (dot) { dot.style.background = color; dot.classList.add('filled'); }
+      matchedCount++; updateScore();
+      if (matchedCount === ANIMALS.length) setTimeout(showWin, 600);
+    } else {
+      first.classList.add('wrong-shake'); second.classList.add('wrong-shake');
+      first.style.borderColor = second.style.borderColor = '#FF6B6B';
+      setTimeout(() => {
+        first.classList.remove('wrong-shake'); second.classList.remove('wrong-shake');
+        first.style.borderColor = second.style.borderColor = '';
+      }, 500);
+    }
+  }
+}
+
+function drawLine(cardA, cardB, color) {
+  const svg = document.getElementById('line-canvas');
+  const a = getCenter(cardA), b = getCenter(cardB);
+  const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+  ln.classList.add('match-line');
+  ln.setAttribute('x1',a.x); ln.setAttribute('y1',a.y);
+  ln.setAttribute('x2',b.x); ln.setAttribute('y2',b.y);
+  ln.setAttribute('stroke', color);
+  svg.insertBefore(ln, tempLine);
+}
+
+function updateScore() {
+  document.getElementById('score').textContent = matchedCount;
+  document.getElementById('tries').textContent  = tries;
+}
+
+function showWin() {
+  document.getElementById('win-screen').classList.add('show');
+  const msgs = ["You're a wild animal expert! 🌟","Amazing job! 🦁","Perfect! 🐾","Incredible! 🎊"];
+  document.getElementById('win-sub').textContent = msgs[Math.floor(Math.random()*msgs.length)];
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const colors = ['#FF6B6B','#FFB347','#4ECDC4','#A78BFA','#34D399','#F472B6','#60A5FA','#FBBF24'];
+  for (let i=0;i<80;i++) setTimeout(()=>{
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'3px'};width:${8+Math.random()*12}px;height:${8+Math.random()*12}px;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.3}s;`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove());
+  }, i*25);
+}
+
+function removeConfetti() { document.querySelectorAll('.confetti-piece').forEach(e=>e.remove()); }
+
+window.addEventListener('resize', () => { clearTimeout(window._rt); window._rt = setTimeout(initGame, 200); });
+
+initGame();
+</script>
+</body>
+</html>
